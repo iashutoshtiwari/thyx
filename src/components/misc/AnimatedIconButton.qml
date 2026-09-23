@@ -1,48 +1,71 @@
 // qmllint disable unqualified
 
-import QtQuick 2.15
+import "../../ui"
 import Qt5Compat.GraphicalEffects
+import QtQuick 2.15
 
 Rectangle {
     id: animatedIconButton
-    color: "transparent"
 
     property string iconSource: ""
-    property color defaultIconColor: config.SystemButtonsIconsColor
-    property color hoverIconColor: config.HoverSystemButtonsIconsColor
-    property color pressedIconColor: Qt.darker(config.HoverSystemButtonsIconsColor, 1.2)
-    property real iconScale: 0.7
+    property color defaultIconColor: config.SystemButtonsIconsColor || UiTokens.subtext0
+    property color hoverIconColor: config.HoverSystemButtonsIconsColor || UiTokens.lavender
+    property color pressedIconColor: Qt.darker(hoverIconColor, 1.15)
+    property real iconScale: 0.55
     property bool circular: true
     property alias mouseArea: clickHandler
-
-    readonly property int animationDuration: config.AnimationDuration || 80
+    readonly property int animationDuration: Number(config.AnimationDuration || UiTokens.motion_normal)
     readonly property var animationEasing: {
         switch (config.AnimationEasing) {
-        case "OutCubic":
-            return Easing.OutCubic;
         case "OutBack":
             return Easing.OutBack;
         case "OutQuart":
-        default:
             return Easing.OutQuart;
+        case "OutCubic":
+        default:
+            return Easing.OutCubic;
         }
     }
-
-    signal clicked
-    signal pressed
-    signal released
-
     property bool isHovered: clickHandler.containsMouse && !clickHandler.pressed
     property bool isPressed: clickHandler.pressed
 
-    radius: circular ? Math.min(width, height) / 2 : 0
+    signal clicked()
+    signal pressed()
+    signal released()
+
+    color: isHovered ? UiTokens.surface0 : "transparent"
+    radius: circular ? Math.min(width, height) / 2 : UiTokens.radius
+    border.width: isHovered ? 1 : 0
+    border.color: UiTokens.surface1
+    Keys.onReturnPressed: animatedIconButton.clicked()
+    Keys.onEnterPressed: animatedIconButton.clicked()
+    states: [
+        State {
+            name: "pressed"
+            when: animatedIconButton.isPressed
+
+            PropertyChanges {
+                iconColorOverlay.color: animatedIconButton.pressedIconColor
+            }
+
+        },
+        State {
+            name: "hovered"
+            when: animatedIconButton.isHovered
+
+            PropertyChanges {
+                iconColorOverlay.color: animatedIconButton.hoverIconColor
+            }
+
+        }
+    ]
 
     MouseArea {
         id: clickHandler
+
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-
         onClicked: animatedIconButton.clicked()
         onPressed: animatedIconButton.pressed()
         onReleased: animatedIconButton.released()
@@ -50,6 +73,7 @@ Rectangle {
 
     Image {
         id: iconImage
+
         anchors.centerIn: parent
         width: parent.width * animatedIconButton.iconScale
         height: parent.height * animatedIconButton.iconScale
@@ -63,6 +87,7 @@ Rectangle {
 
         ColorOverlay {
             id: iconColorOverlay
+
             anchors.fill: parent
             source: parent
             color: animatedIconButton.defaultIconColor
@@ -72,27 +97,27 @@ Rectangle {
                     duration: animatedIconButton.animationDuration
                     easing.type: animatedIconButton.animationEasing
                 }
+
             }
+
         }
+
     }
 
-    states: [
-        State {
-            name: "pressed"
-            when: animatedIconButton.isPressed
-            PropertyChanges {
-                iconColorOverlay.color: animatedIconButton.pressedIconColor
-            }
-        },
-        State {
-            name: "hovered"
-            when: animatedIconButton.isHovered
-            PropertyChanges {
-                iconColorOverlay.color: animatedIconButton.hoverIconColor
-            }
+    Behavior on color {
+        ColorAnimation {
+            duration: animatedIconButton.animationDuration
+            easing.type: animatedIconButton.animationEasing
         }
-    ]
 
-    Keys.onReturnPressed: animatedIconButton.clicked()
-    Keys.onEnterPressed: animatedIconButton.clicked()
+    }
+
+    Behavior on border.color {
+        ColorAnimation {
+            duration: animatedIconButton.animationDuration
+            easing.type: animatedIconButton.animationEasing
+        }
+
+    }
+
 }
