@@ -1,202 +1,349 @@
 // qmllint disable unqualified
 
+import "../../ui"
+import Qt5Compat.GraphicalEffects
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import Qt5Compat.GraphicalEffects
 import SddmComponents 2.0 as SDDM
 
 Rectangle {
     id: userInputContainer
-    implicitHeight: root.font.pointSize * 4.5
-    implicitWidth: parent.width / 2
-    anchors.horizontalCenter: parent.horizontalCenter
-    color: "transparent"
 
-    property alias username: userInput
+    property alias username: authUserProxy
     property Item nextDown
+    property int selectedUserIndex: {
+        if (typeof userModel !== "undefined" && userModel && userModel.lastIndex >= 0)
+            return userModel.lastIndex;
+
+        return 0;
+    }
+    property string currentUserName: (typeof userModel !== "undefined" && userModel && userModel.lastUser) ? userModel.lastUser : ""
+    property string currentUserRealName: ""
+    property string avatarSource: (typeof userModel !== "undefined" && userModel && userModel.lastUser) ? ("/home/" + userModel.lastUser + "/.face.icon") : ""
+    readonly property bool hasUsers: typeof userModel !== "undefined" && userModel && userModel.count > 0
+    readonly property string displayName: {
+        if (currentUserRealName && currentUserRealName.trim().length > 0)
+            return currentUserRealName.trim();
+
+        if (currentUserName && currentUserName.trim().length > 0)
+            return currentUserName.trim();
+
+        return "";
+    }
+
     signal accepted(string username)
+
+    function updateFromItem(uName, uRealName, uIcon) {
+        currentUserName = uName;
+        currentUserRealName = uRealName;
+        if (uIcon && uIcon.length > 0)
+            avatarSource = uIcon;
+        else if (uName && uName.length > 0)
+            avatarSource = "/home/" + uName + "/.face.icon";
+        else
+            avatarSource = "";
+    }
+
+    function selectUser(idx) {
+        selectedUserIndex = idx;
+        if (idx >= 0 && idx < userModelWatcher.count) {
+            var item = userModelWatcher.itemAt(idx);
+            if (item)
+                updateFromItem(item.itemUserName, item.itemRealName, item.itemIcon);
+
+        }
+    }
+
+    implicitHeight: userLayout.implicitHeight
+    implicitWidth: parent ? parent.width : Math.round(280 * UiTokens.scale)
+    anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
+    color: "transparent"
 
     SDDM.TextConstants {
         id: loginConstants
     }
 
-    Rectangle {
-        id: inputFrame
-        anchors.centerIn: parent
-        width: parent.width
-        height: root.font.pointSize * 3
-        radius: 24
-        color: Qt.rgba(parseInt(config.LoginFieldBackgroundColor.slice(1, 3), 16) / 255, parseInt(config.LoginFieldBackgroundColor.slice(3, 5), 16) / 255, parseInt(config.LoginFieldBackgroundColor.slice(5, 7), 16) / 255, 0.25)
-        border.width: 0
-        border.color: "transparent"
+    QtObject {
+        id: authUserProxy
 
-        layer.enabled: true
-        layer.effect: DropShadow {
-            horizontalOffset: 0
-            verticalOffset: 2
-            radius: 8
-            samples: 16
-            color: Qt.rgba(0, 0, 0, 0.15)
+        property string text: userInputContainer.currentUserName
+
+        signal accepted()
+    }
+
+    Repeater {
+        id: userModelWatcher
+
+        model: (typeof userModel !== "undefined" && userModel) ? userModel : null
+
+        Item {
+            readonly property string itemUserName: model.name || ""
+            readonly property string itemRealName: model.realName || ""
+            readonly property string itemIcon: model.icon || ""
+
+            Component.onCompleted: {
+                if (index === userInputContainer.selectedUserIndex)
+                    userInputContainer.updateFromItem(itemUserName, itemRealName, itemIcon);
+
+            }
         }
 
-        TextInput {
-            id: userInput
-            anchors.centerIn: parent
-            width: parent.width - 16
-            height: parent.height
-            horizontalAlignment: TextInput.AlignHCenter
-            verticalAlignment: TextInput.AlignVCenter
-            z: 1
+    }
 
-            text: userPicker.currentText
+    Column {
+        id: userLayout
 
-            font {
-                bold: true
-                pointSize: root.font.pointSize
-                family: root.font.family
-                capitalization: config.AllowUppercaseLettersInUsernames == "false" ? Font.AllLowercase : Font.MixedCase
-            }
-            color: config.LoginFieldTextColor
-            selectByMouse: true
-            renderType: Text.QtRendering
-            onFocusChanged: if (focus)
-                selectAll()
-            onAccepted: userInputContainer.accepted(userInput.text)
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: UiTokens.spacing_sm
 
-            KeyNavigation.down: userInputContainer.nextDown
+        // Avatar
+        Rectangle {
+            id: avatarCircle
+
+            width: Math.round(root.font.pointSize * 6)
+            height: width
+            radius: width / 2
+            color: UiTokens.surface0
+            border.width: 1.5
+            border.color: UiTokens.surface1
+            anchors.horizontalCenter: parent.horizontalCenter
 
             Rectangle {
-                id: userPlaceholder
+                id: avatarMask
+
                 anchors.fill: parent
-                color: "transparent"
-                visible: userInput.text === ""
+                anchors.margins: 2
+                radius: width / 2
+                visible: false
+            }
+
+            // Circular masked avatar image
+            Item {
+                anchors.fill: parent
+                anchors.margins: 2
+                layer.enabled: true
+
+                Image {
+                    id: avatarImg
+
+                    anchors.fill: parent
+                    source: userInputContainer.avatarSource
+                    fillMode: Image.PreserveAspectCrop
+                    visible: status === Image.Ready
+                    smooth: true
+                    asynchronous: true
+                }
+
+                layer.effect: OpacityMask {
+                    maskSource: avatarMask
+                }
+
+            }
+
+            // Fallback Initial Letter
+            Text {
+                anchors.centerIn: parent
+                visible: avatarImg.status !== Image.Ready && userInputContainer.displayName.length > 0
+                text: userInputContainer.displayName.charAt(0).toUpperCase()
+                color: UiTokens.lavender
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                renderType: Text.QtRendering
+
+                font {
+                    family: root.font.family
+                    pointSize: Math.round(root.font.pointSize * 2.2)
+                    weight: Font.Bold
+                }
+
+            }
+
+        }
+
+        // User Identity (Full Name when users exist)
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: UiTokens.spacing_xs
+
+            Text {
+                id: nameDisplay
+
+                visible: userInputContainer.hasUsers
+                text: userInputContainer.displayName
+                color: config.LoginFieldTextColor || UiTokens.text
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                renderType: Text.QtRendering
+
+                font {
+                    pointSize: Math.round(root.font.pointSize * 1.35)
+                    family: root.font.family
+                    weight: Font.DemiBold
+                }
+
+            }
+
+            // Fallback editable text input only when no userModel exists
+            TextInput {
+                id: manualUserInput
+
+                visible: !userInputContainer.hasUsers
+                width: Math.round(160 * UiTokens.scale)
+                horizontalAlignment: TextInput.AlignHCenter
+                verticalAlignment: TextInput.AlignVCenter
+                text: userInputContainer.currentUserName
+                color: config.LoginFieldTextColor || UiTokens.text
+                onTextChanged: userInputContainer.currentUserName = text
+                onAccepted: {
+                    userInputContainer.accepted(text);
+                    if (userInputContainer.nextDown)
+                        userInputContainer.nextDown.forceActiveFocus();
+
+                }
+                KeyNavigation.down: userInputContainer.nextDown
+
+                font {
+                    pointSize: Math.round(root.font.pointSize * 1.25)
+                    family: root.font.family
+                    weight: Font.DemiBold
+                }
+
+            }
+
+            // Multi-user dropdown trigger (visible ONLY when multiple users exist)
+            Rectangle {
+                id: userSwitchBtn
+
+                visible: typeof userModel !== "undefined" && userModel && userModel.count > 1
+                width: Math.round(root.font.pointSize * 1.8)
+                height: width
+                radius: UiTokens.radius_sm
+                color: userSwitchArea.containsMouse ? UiTokens.surface0 : "transparent"
+                anchors.verticalCenter: parent.verticalCenter
 
                 Text {
                     anchors.centerIn: parent
-                    text: loginConstants.userName
-                    color: config.PlaceholderTextColor
-                    font: userInput.font
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                    text: "▾"
+                    font.pointSize: Math.round(root.font.pointSize * 0.8)
+                    color: userSwitchArea.containsMouse ? UiTokens.lavender : UiTokens.subtext0
+                    renderType: Text.QtRendering
                 }
-            }
-        }
 
-        Behavior on border.color {
-            ColorAnimation {
-                duration: config.AnimationDuration || 80
-                easing.type: {
-                    switch (config.AnimationEasing) {
-                    case "OutCubic":
-                        return Easing.OutCubic;
-                    case "OutBack":
-                        return Easing.OutBack;
-                    case "OutQuart":
-                    default:
-                        return Easing.OutQuart;
-                    }
-                }
-            }
-        }
+                MouseArea {
+                    id: userSwitchArea
 
-        states: [
-            State {
-                name: "userInputFocused"
-                when: userInput.activeFocus
-                PropertyChanges {
-                    inputFrame.border.color: "#8ab4f8"
-                }
-                PropertyChanges {
-                    userInput.color: config.LoginFieldTextColor
-                }
-            }
-        ]
-    }
-
-    ComboBox {
-        id: userPicker
-        visible: false
-        model: userModel
-        currentIndex: model.lastIndex
-        textRole: "name"
-        onActivated: userInput.text = currentText
-
-        popup: Popup {
-            id: userMenu
-            visible: false  // Disable dropdown completely
-            implicitHeight: 0
-            width: 0
-            y: inputFrame.height - userInput.height / 3
-            x: 0
-            padding: 10
-
-            background: Rectangle {
-                radius: 12
-                color: config.DropdownBackgroundColor
-                border.width: 1
-                border.color: config.DropdownBorderColor
-                layer.enabled: true
-                layer.effect: DropShadow {
-                    horizontalOffset: 0
-                    verticalOffset: 4
-                    radius: 12
-                    samples: 24
-                    color: Qt.rgba(0, 0, 0, 0.3)
-                }
-            }
-
-            contentItem: ListView {
-                id: userListContent
-                implicitHeight: contentHeight + 20
-                clip: true
-                model: userPicker.popup.visible ? userPicker.delegateModel : null
-                currentIndex: userPicker.highlightedIndex
-
-                delegate: Rectangle {
-                    width: ListView.view.width - 20
-                    height: delegateUserText.implicitHeight + 16
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    color: ListView.view.currentIndex === index ? config.DropdownSelectedBackgroundColor : "transparent"
-                    radius: 8
-                    border.width: ListView.view.currentIndex === index ? 1 : 0
-                    border.color: config.DropdownSelectedBorderColor
-
-                    Text {
-                        id: delegateUserText
-                        anchors.centerIn: parent
-                        text: name
-                        font {
-                            pointSize: root.font.pointSize * 0.9
-                            capitalization: Font.AllLowercase
-                            family: root.font.family
-                            weight: Font.Medium
-                        }
-                        color: ListView.view.currentIndex === index ? config.DropdownSelectedTextColor : config.DropdownTextColor
-                        verticalAlignment: Text.AlignVCenter
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            userPicker.currentIndex = index;
-                            userInput.text = userPicker.currentText;
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (userMenu.visible)
                             userMenu.close();
-                        }
+                        else
+                            userMenu.open();
                     }
                 }
 
-                ScrollIndicator.vertical: ScrollIndicator {}
             }
 
-            enter: Transition {
-                NumberAnimation {
-                    property: "opacity"
-                    from: 0
-                    to: 1
-                    duration: 80
-                }
-            }
         }
+
     }
+
+    Popup {
+        id: userMenu
+
+        implicitHeight: Math.min(userListContent.implicitHeight + Math.round(16 * UiTokens.scale), Math.round(200 * UiTokens.scale))
+        width: Math.max(userLayout.width, Math.round(220 * UiTokens.scale))
+        y: userLayout.height + UiTokens.spacing_xs
+        x: Math.round((userInputContainer.width - width) / 2)
+        padding: UiTokens.spacing_sm
+
+        background: Rectangle {
+            radius: UiTokens.radius
+            color: config.DropdownBackgroundColor || UiTokens.mantle
+            border.width: 1
+            border.color: config.DropdownBorderColor || UiTokens.surface0
+            layer.enabled: true
+
+            layer.effect: DropShadow {
+                horizontalOffset: 0
+                verticalOffset: Math.round(4 * UiTokens.scale)
+                radius: Math.round(12 * UiTokens.scale)
+                samples: 16
+                color: Qt.rgba(0, 0, 0, 0.3)
+            }
+
+        }
+
+        contentItem: ListView {
+            id: userListContent
+
+            implicitHeight: contentHeight
+            clip: true
+            model: (typeof userModel !== "undefined" && userModel) ? userModel : null
+            currentIndex: userInputContainer.selectedUserIndex
+
+            delegate: Rectangle {
+                width: userListContent.width
+                height: delegateUserText.implicitHeight + Math.round(14 * UiTokens.scale)
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: userListContent.currentIndex === index ? (config.DropdownSelectedBackgroundColor || UiTokens.lavender) : "transparent"
+                radius: UiTokens.radius_sm
+
+                Text {
+                    id: delegateUserText
+
+                    anchors.centerIn: parent
+                    text: (model.realName && model.realName.trim().length > 0) ? model.realName.trim() : (model.name || "")
+                    color: userListContent.currentIndex === index ? (config.DropdownSelectedTextColor || UiTokens.crust) : (config.DropdownTextColor || UiTokens.text)
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    renderType: Text.QtRendering
+
+                    font {
+                        pointSize: root.font.pointSize
+                        family: root.font.family
+                        weight: Font.Medium
+                    }
+
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: {
+                        userInputContainer.selectUser(index);
+                        userMenu.close();
+                    }
+                }
+
+            }
+
+            ScrollIndicator.vertical: ScrollIndicator {
+            }
+
+        }
+
+        enter: Transition {
+            NumberAnimation {
+                property: "opacity"
+                from: 0
+                to: 1
+                duration: UiTokens.motion_fast
+            }
+
+        }
+
+        exit: Transition {
+            NumberAnimation {
+                property: "opacity"
+                from: 1
+                to: 0
+                duration: UiTokens.motion_fast
+            }
+
+        }
+
+    }
+
 }

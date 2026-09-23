@@ -1,182 +1,212 @@
 // qmllint disable unqualified
+
+import "../../ui"
+import Qt5Compat.GraphicalEffects
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
 Rectangle {
     id: environmentSelector
-    Layout.alignment: Qt.AlignHCenter
-    Layout.preferredHeight: root.height / 15
-    Layout.maximumHeight: root.height / 15
-    color: "transparent"
-
-    property string formAlignment: config.FormPosition
-    Layout.leftMargin: 0
-
-    implicitHeight: root.font.pointSize
-    implicitWidth: parent.width / 2
 
     property alias currentIndex: environmentPicker.currentIndex
+    readonly property int sessionCount: {
+        if (typeof sessionModel === "undefined" || !sessionModel)
+            return 0;
+
+        if (typeof sessionModel.count !== "undefined")
+            return sessionModel.count;
+
+        if (typeof sessionModel.rowCount === "function")
+            return sessionModel.rowCount();
+
+        return environmentPicker.count;
+    }
+
+    visible: sessionCount > 1
+    Layout.alignment: Qt.AlignHCenter
+    Layout.preferredHeight: visible ? environmentContainer.height : 0
+    Layout.maximumHeight: visible ? environmentContainer.height : 0
+    Layout.leftMargin: 0
+    color: "transparent"
+    implicitHeight: visible ? environmentContainer.height : 0
+    implicitWidth: visible ? environmentContainer.width : 0
+    height: visible ? environmentContainer.height : 0
+    width: visible ? environmentContainer.width : 0
 
     Rectangle {
         id: environmentContainer
+
         anchors.horizontalCenter: parent.horizontalCenter
-        height: root.font.pointSize * 3
-        width: parent.width
-        color: "transparent"
+        height: Math.round(root.font.pointSize * 2.4)
+        width: contentRow.implicitWidth + Math.round(24 * UiTokens.scale)
+        radius: UiTokens.radius
+        color: environmentTrigger.containsMouse ? UiTokens.surface0 : "transparent"
+        border.width: 1
+        border.color: environmentTrigger.containsMouse ? UiTokens.surface1 : Qt.rgba(49 / 255, 50 / 255, 68 / 255, 0.4)
+        Keys.onPressed: function(event) {
+            if ((event.key == Qt.Key_Left || event.key == Qt.Key_Right) && !environmentMenu.visible)
+                environmentMenu.open();
+
+        }
 
         MouseArea {
             id: environmentTrigger
+
             anchors.fill: parent
             hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
             onClicked: environmentMenu.visible ? environmentMenu.close() : environmentMenu.open()
         }
 
-        Text {
-            id: environmentDisplayText
+        Row {
+            id: contentRow
+
             anchors.centerIn: parent
-            text: "Environment (" + environmentPicker.currentText + ")"
-            color: config.EnvironmentButtonTextColor
-            font {
-                pointSize: root.font.pointSize * 0.9
-                family: root.font.family
-            }
-            verticalAlignment: Text.AlignVCenter
+            spacing: UiTokens.spacing_xs
 
-            Behavior on color {
-                ColorAnimation {
-                    duration: config.AnimationDuration || 80
-                    easing.type: {
-                        switch (config.AnimationEasing) {
-                        case "OutCubic":
-                            return Easing.OutCubic;
-                        case "OutBack":
-                            return Easing.OutBack;
-                        case "OutQuart":
-                        default:
-                            return Easing.OutQuart;
-                        }
+            Text {
+                id: environmentDisplayText
+
+                text: environmentPicker.currentText
+                color: environmentTrigger.containsMouse ? UiTokens.lavender : (config.EnvironmentButtonTextColor || UiTokens.subtext0)
+                verticalAlignment: Text.AlignVCenter
+                renderType: Text.QtRendering
+
+                font {
+                    pointSize: Math.round(root.font.pointSize * 0.9)
+                    family: root.font.family
+                    weight: Font.Medium
+                }
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: UiTokens.motion_fast
                     }
+
                 }
+
             }
-        }
 
-        Rectangle {
-            id: focusIndicator
-            anchors.bottom: parent.bottom
-            width: environmentDisplayText.implicitWidth
-            height: environmentContainer.activeFocus ? 2 : 0
-            color: "transparent"
-            anchors.horizontalCenter: parent.horizontalCenter
+            Text {
+                text: "▾"
+                color: environmentTrigger.containsMouse ? UiTokens.lavender : (config.EnvironmentButtonTextColor || UiTokens.subtext0)
+                anchors.verticalCenter: parent.verticalCenter
+                renderType: Text.QtRendering
 
-            Behavior on height {
-                NumberAnimation {
-                    duration: config.AnimationDuration * 2 || 160
-                    easing.type: {
-                        switch (config.AnimationEasing) {
-                        case "OutCubic":
-                            return Easing.OutCubic;
-                        case "OutBack":
-                            return Easing.OutBack;
-                        case "OutQuart":
-                        default:
-                            return Easing.OutQuart;
-                        }
+                font {
+                    pointSize: Math.round(root.font.pointSize * 0.8)
+                    family: root.font.family
+                }
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: UiTokens.motion_fast
                     }
+
                 }
+
             }
+
         }
 
-        states: [
-            State {
-                name: "sessionPressed"
-                when: environmentTrigger.pressed
-                PropertyChanges {
-                    environmentDisplayText.color: Qt.darker(config.HoverEnvironmentButtonTextColor, 1.2)
-                }
-            },
-            State {
-                name: "sessionHovered"
-                when: environmentTrigger.containsMouse && !environmentTrigger.pressed
-                PropertyChanges {
-                    environmentDisplayText.color: Qt.lighter(config.HoverEnvironmentButtonTextColor, 1.15)
-                }
-            },
-            State {
-                name: "sessionFocused"
-                when: environmentContainer.activeFocus
-                PropertyChanges {
-                    environmentDisplayText.color: config.HoverEnvironmentButtonTextColor
-                }
+        Behavior on color {
+            ColorAnimation {
+                duration: UiTokens.motion_fast
             }
-        ]
 
-        Keys.onPressed: function (event) {
-            if ((event.key == Qt.Key_Left || event.key == Qt.Key_Right) && !environmentMenu.visible) {
-                environmentMenu.open();
-            }
         }
+
+        Behavior on border.color {
+            ColorAnimation {
+                duration: UiTokens.motion_fast
+            }
+
+        }
+
     }
 
     ComboBox {
         id: environmentPicker
+
         visible: false
-        model: sessionModel
-        currentIndex: model.lastIndex
+        model: (typeof sessionModel !== "undefined" && sessionModel) ? sessionModel : null
+        currentIndex: (typeof sessionModel !== "undefined" && sessionModel && sessionModel.lastIndex >= 0) ? sessionModel.lastIndex : 0
         textRole: "name"
 
         popup: Popup {
             id: environmentMenu
-            implicitHeight: menuContent.implicitHeight
-            width: environmentSelector.width
-            y: environmentContainer.height - 1
-            x: -environmentMenu.width / 2 + environmentDisplayText.width / 2
-            padding: 10
+
+            implicitHeight: Math.min(menuContent.implicitHeight + Math.round(16 * UiTokens.scale), Math.round(220 * UiTokens.scale))
+            width: Math.max(environmentContainer.width + Math.round(40 * UiTokens.scale), Math.round(200 * UiTokens.scale))
+            y: environmentContainer.height + UiTokens.spacing_xs
+            x: Math.round((environmentContainer.width - width) / 2)
+            padding: UiTokens.spacing_sm
 
             background: Rectangle {
-                radius: 12
-                color: config.DropdownBackgroundColor
+                radius: UiTokens.radius
+                color: config.DropdownBackgroundColor || UiTokens.mantle
+                border.width: 1
+                border.color: config.DropdownBorderColor || UiTokens.surface0
                 layer.enabled: true
+
+                layer.effect: DropShadow {
+                    horizontalOffset: 0
+                    verticalOffset: Math.round(4 * UiTokens.scale)
+                    radius: Math.round(12 * UiTokens.scale)
+                    samples: 16
+                    color: Qt.rgba(0, 0, 0, 0.3)
+                }
+
             }
 
             contentItem: ListView {
                 id: menuContent
-                implicitHeight: contentHeight + 20
+
+                implicitHeight: contentHeight
                 clip: true
                 model: environmentPicker.popup.visible ? environmentPicker.delegateModel : null
                 currentIndex: environmentPicker.highlightedIndex
 
                 delegate: Rectangle {
-                    width: menuContent.width - 20
-                    height: delegateText.implicitHeight + 12
+                    width: menuContent.width
+                    height: delegateText.implicitHeight + Math.round(12 * UiTokens.scale)
                     anchors.horizontalCenter: parent.horizontalCenter
-                    color: menuContent.currentIndex === index ? config.DropdownSelectedBackgroundColor : "transparent"
-                    radius: 4
+                    color: menuContent.currentIndex === index ? (config.DropdownSelectedBackgroundColor || UiTokens.lavender) : "transparent"
+                    radius: UiTokens.radius_sm
 
                     Text {
                         id: delegateText
+
                         anchors.centerIn: parent
-                        text: name
-                        font {
-                            pointSize: root.font.pointSize * 0.8
-                            family: root.font.family
-                            weight: Font.Normal
-                        }
-                        color: config.DropdownTextColor
+                        text: model.name || ""
+                        color: menuContent.currentIndex === index ? (config.DropdownSelectedTextColor || UiTokens.crust) : (config.DropdownTextColor || UiTokens.text)
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
+                        renderType: Text.QtRendering
+
+                        font {
+                            pointSize: Math.round(root.font.pointSize * 0.9)
+                            family: root.font.family
+                            weight: Font.Medium
+                        }
+
                     }
 
                     MouseArea {
                         anchors.fill: parent
+                        hoverEnabled: true
                         onClicked: {
                             environmentPicker.currentIndex = index;
                             environmentMenu.close();
                         }
                     }
+
                 }
 
-                ScrollIndicator.vertical: ScrollIndicator {}
+                ScrollIndicator.vertical: ScrollIndicator {
+                }
+
             }
 
             enter: Transition {
@@ -184,17 +214,23 @@ Rectangle {
                     property: "opacity"
                     from: 0
                     to: 1
-                    duration: 200
+                    duration: UiTokens.motion_fast
                 }
+
             }
+
             exit: Transition {
                 NumberAnimation {
                     property: "opacity"
                     from: 1
                     to: 0
-                    duration: 150
+                    duration: UiTokens.motion_fast
                 }
+
             }
+
         }
+
     }
+
 }

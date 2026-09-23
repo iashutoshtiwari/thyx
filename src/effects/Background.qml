@@ -1,14 +1,13 @@
-import QtQuick 2.15
 import QtMultimedia
+import QtQuick 2.15
 
 Item {
     id: background
-    anchors.fill: parent
 
-    property var config: ({})
-    property color fallbackColor: "#000000"
+    property var config: ({
+    })
+    property color fallbackColor: "#11111b"
     property alias imageItem: backgroundImage
-
     readonly property string backgroundPath: (config.Background && config.Background !== "") ? String(config.Background) : ""
     readonly property string backgroundExtension: backgroundPath !== "" ? backgroundPath.split(".").pop().toLowerCase() : ""
     readonly property bool hasBackground: backgroundPath !== ""
@@ -17,6 +16,8 @@ Item {
     readonly property bool hasVideo: hasBackground && isVideo
     readonly property url backgroundUrl: hasBackground ? Qt.resolvedUrl("../../" + backgroundPath) : ""
 
+    anchors.fill: parent
+
     Rectangle {
         anchors.fill: parent
         color: background.fallbackColor
@@ -24,32 +25,57 @@ Item {
 
     Image {
         id: backgroundImage
-        anchors.fill: parent
 
+        anchors.fill: parent
         source: background.hasImage ? background.backgroundUrl : ""
         asynchronous: false
         cache: true
         clip: true
         mipmap: false
-
         horizontalAlignment: Image.AlignHCenter
         verticalAlignment: Image.AlignVCenter
         fillMode: Image.PreserveAspectCrop
         visible: background.hasImage && status === Image.Ready
     }
 
-    VideoOutput {
-        id: videoOutput
+    Loader {
+        id: videoLoader
+
         anchors.fill: parent
+        active: background.hasVideo
         visible: background.hasVideo
-        fillMode: VideoOutput.PreserveAspectCrop
+
+        sourceComponent: Component {
+            Item {
+                anchors.fill: parent
+
+                VideoOutput {
+                    id: videoOutput
+
+                    anchors.fill: parent
+                    fillMode: VideoOutput.PreserveAspectCrop
+                }
+
+                MediaPlayer {
+                    videoOutput: videoOutput
+                    autoPlay: true
+                    loops: -1
+                    source: background.backgroundUrl
+                }
+
+            }
+
+        }
+
     }
 
-    MediaPlayer {
-        id: player
-        videoOutput: videoOutput
-        autoPlay: background.hasVideo
-        loops: -1
-        source: background.hasVideo ? background.backgroundUrl : ""
+    Rectangle {
+        id: readabilityScrim
+
+        anchors.fill: parent
+        color: "#11111b"
+        opacity: 0.25
+        visible: background.hasBackground
     }
+
 }
