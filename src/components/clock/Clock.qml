@@ -1,3 +1,4 @@
+import "../../ui"
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
 
@@ -22,17 +23,17 @@ Rectangle {
         id: timeDisplayContainer
 
         anchors.centerIn: parent
-        spacing: 4
+        spacing: UiTokens.spacing_xs
 
-        DateLabel {
-            id: currentDate
+        TimeLabel {
+            id: currentTime
 
             rootItem: temporalDisplay.rootItem
             config: temporalDisplay.config
         }
 
-        TimeLabel {
-            id: currentTime
+        DateLabel {
+            id: currentDate
 
             rootItem: temporalDisplay.rootItem
             config: temporalDisplay.config

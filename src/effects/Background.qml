@@ -38,21 +38,35 @@ Item {
         visible: background.hasImage && status === Image.Ready
     }
 
-    VideoOutput {
-        id: videoOutput
+    Loader {
+        id: videoLoader
 
         anchors.fill: parent
+        active: background.hasVideo
         visible: background.hasVideo
-        fillMode: VideoOutput.PreserveAspectCrop
-    }
 
-    MediaPlayer {
-        id: player
+        sourceComponent: Component {
+            Item {
+                anchors.fill: parent
 
-        videoOutput: videoOutput
-        autoPlay: background.hasVideo
-        loops: -1
-        source: background.hasVideo ? background.backgroundUrl : ""
+                VideoOutput {
+                    id: videoOutput
+
+                    anchors.fill: parent
+                    fillMode: VideoOutput.PreserveAspectCrop
+                }
+
+                MediaPlayer {
+                    videoOutput: videoOutput
+                    autoPlay: true
+                    loops: -1
+                    source: background.backgroundUrl
+                }
+
+            }
+
+        }
+
     }
 
     Rectangle {
@@ -60,7 +74,7 @@ Item {
 
         anchors.fill: parent
         color: "#11111b"
-        opacity: 0.35
+        opacity: 0.25
         visible: background.hasBackground
     }
 

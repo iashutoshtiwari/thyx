@@ -12,8 +12,8 @@ Rectangle {
 
     signal accepted(string password)
 
-    implicitHeight: inputWrapper.height + 4
-    implicitWidth: parent ? Math.min(parent.width - 48, 280) : 280
+    implicitHeight: inputWrapper.height + UiTokens.spacing_xs
+    implicitWidth: parent ? Math.min(parent.width - Math.round(48 * UiTokens.scale), Math.round(280 * UiTokens.scale)) : Math.round(280 * UiTokens.scale)
     anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
     color: "transparent"
 
@@ -42,8 +42,8 @@ Rectangle {
             id: secureInput
 
             anchors.fill: parent
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
+            anchors.leftMargin: Math.round(16 * UiTokens.scale)
+            anchors.rightMargin: Math.round(16 * UiTokens.scale)
             horizontalAlignment: TextInput.AlignHCenter
             verticalAlignment: TextInput.AlignVCenter
             color: config.PasswordFieldTextColor || UiTokens.text

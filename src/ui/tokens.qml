@@ -2,14 +2,16 @@ import QtQuick 2.15
 pragma Singleton
 
 QtObject {
-    readonly property int spacing_xs: 4
-    readonly property int spacing_sm: 8
-    readonly property int spacing_md: 14
-    readonly property int spacing_lg: 20
-    readonly property int spacing_xl: 28
-    readonly property int radius_sm: 6
-    readonly property int radius: 8
-    readonly property int radius_lg: 12
+    property real scale: 1.0
+
+    readonly property int spacing_xs: Math.max(1, Math.round(4 * scale))
+    readonly property int spacing_sm: Math.max(1, Math.round(8 * scale))
+    readonly property int spacing_md: Math.max(1, Math.round(14 * scale))
+    readonly property int spacing_lg: Math.max(1, Math.round(20 * scale))
+    readonly property int spacing_xl: Math.max(1, Math.round(28 * scale))
+    readonly property int radius_sm: Math.max(1, Math.round(6 * scale))
+    readonly property int radius: Math.max(1, Math.round(8 * scale))
+    readonly property int radius_lg: Math.max(1, Math.round(12 * scale))
     readonly property int motion_fast: 100
     readonly property int motion_normal: 150
     readonly property int motion_slow: 200

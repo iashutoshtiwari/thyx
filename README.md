@@ -367,6 +367,7 @@ sudo fc-cache -f -v
 | ---------------------------------- | ------------------------------------------ | -------------------------- |
 | `Font`                             | System font family                         | `"Plus Jakarta Sans"`      |
 | `FontSize`                         | Base font size in points                   | `"12"`                     |
+| `UiScale`                          | Theme UI scale factor                      | `"1.4"`                    |
 | `Background`                       | Wallpaper or video path, relative to theme | `"backgrounds/gilded.jpg"` |
 | `AllowUppercaseLettersInUsernames` | Username capitalization behavior           | `"true"`, `"false"`        |
 

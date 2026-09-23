@@ -15,11 +15,21 @@ Pane {
 
     readonly property var cfg: (typeof config !== "undefined" && config) ? config : ({
     })
+    readonly property real uiScale: {
+        const raw = Number(cfg.UiScale);
+        return (!isNaN(raw) && raw > 0) ? raw : 1.0;
+    }
     readonly property string formPos: String(cfg.FormPosition || "center")
     readonly property var sddmApi: (typeof sddm !== "undefined" && sddm) ? sddm : null
     readonly property color startupColor: (cfg.StartupBackgroundColor && cfg.StartupBackgroundColor !== "") ? cfg.StartupBackgroundColor : UiTokens.crust
     property bool authFailed: false
     property string errorMessage: ""
+
+    Binding {
+        target: UiTokens
+        property: "scale"
+        value: root.uiScale
+    }
 
     height: Screen.height
     width: Screen.width
@@ -31,7 +41,7 @@ Pane {
 
     font {
         family: cfg.Font || font.family
-        pointSize: (cfg.FontSize !== "" && typeof cfg.FontSize !== "undefined") ? parseInt(cfg.FontSize) : (parseInt(height / 80) || 11)
+        pointSize: Math.round(((cfg.FontSize !== "" && typeof cfg.FontSize !== "undefined") ? Number(cfg.FontSize) : (height / 80 || 11)) * root.uiScale)
         weight: Font.Medium
     }
 
@@ -58,7 +68,7 @@ Pane {
             id: form
 
             z: 1
-            width: Math.min(parent.width * 0.88, 320)
+            width: Math.min(parent.width * 0.88, Math.round(320 * root.uiScale))
             spacing: UiTokens.spacing_md
             x: {
                 if (root.formPos === "left")
@@ -91,7 +101,7 @@ Pane {
                 NumberAnimation {
                     target: entranceTrans
                     property: "y"
-                    from: 8
+                    from: Math.round(8 * root.uiScale)
                     to: 0
                     duration: UiTokens.motion_normal
                     easing.type: UiTokens.easing_standard
@@ -117,17 +127,19 @@ Pane {
             Rectangle {
                 id: authCard
 
+                readonly property int cardPadding: Math.round(32 * root.uiScale)
+
                 Layout.fillWidth: true
-                Layout.preferredHeight: authCardContent.implicitHeight + 36
-                radius: UiTokens.radius_lg
-                color: Qt.rgba(24 / 255, 24 / 255, 37 / 255, 0.72)
+                Layout.preferredHeight: authCardContent.implicitHeight + cardPadding
+                radius: UiTokens.radius
+                color: Qt.rgba(24 / 255, 24 / 255, 37 / 255, 0.55)
                 border.width: 1
-                border.color: Qt.rgba(49 / 255, 50 / 255, 68 / 255, 0.65)
+                border.color: Qt.rgba(49 / 255, 50 / 255, 68 / 255, 0.45)
 
                 Column {
                     id: authCardContent
 
-                    width: parent.width - 32
+                    width: parent.width - authCard.cardPadding
                     anchors.centerIn: parent
                     spacing: UiTokens.spacing_sm
 
@@ -181,7 +193,8 @@ Pane {
             }
 
             Item {
-                Layout.preferredHeight: UiTokens.spacing_xs
+                visible: environmentButton.visible
+                Layout.preferredHeight: environmentButton.visible ? UiTokens.spacing_xs : 0
             }
 
             // Session Selector
@@ -226,7 +239,7 @@ Pane {
             transform: Translate {
                 id: entranceTrans
 
-                y: 8
+                y: Math.round(8 * root.uiScale)
             }
 
         }

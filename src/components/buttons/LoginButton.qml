@@ -46,7 +46,7 @@ Rectangle {
     }
 
     implicitHeight: buttonLayout.implicitHeight
-    implicitWidth: parent ? Math.min(parent.width - 48, 280) : 280
+    implicitWidth: parent ? Math.min(parent.width - Math.round(48 * UiTokens.scale), Math.round(280 * UiTokens.scale)) : Math.round(280 * UiTokens.scale)
     anchors.horizontalCenter: parent ? parent.horizontalCenter : undefined
     color: "transparent"
 
@@ -112,7 +112,7 @@ Rectangle {
             width: parent.width
             anchors.horizontalCenter: parent.horizontalCenter
             visible: config.AutoFingerprintOnLoad == "true" || config.AutoFingerprintOnLoad === true
-            spacing: 2
+            spacing: Math.max(2, Math.round(2 * UiTokens.scale))
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter

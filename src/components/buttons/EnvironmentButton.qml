@@ -10,21 +10,36 @@ Rectangle {
     id: environmentSelector
 
     property alias currentIndex: environmentPicker.currentIndex
+    readonly property int sessionCount: {
+        if (typeof sessionModel === "undefined" || !sessionModel)
+            return 0;
 
+        if (typeof sessionModel.count !== "undefined")
+            return sessionModel.count;
+
+        if (typeof sessionModel.rowCount === "function")
+            return sessionModel.rowCount();
+
+        return environmentPicker.count;
+    }
+
+    visible: sessionCount > 1
     Layout.alignment: Qt.AlignHCenter
-    Layout.preferredHeight: environmentContainer.height
-    Layout.maximumHeight: environmentContainer.height
+    Layout.preferredHeight: visible ? environmentContainer.height : 0
+    Layout.maximumHeight: visible ? environmentContainer.height : 0
     Layout.leftMargin: 0
     color: "transparent"
-    implicitHeight: environmentContainer.height
-    implicitWidth: environmentContainer.width
+    implicitHeight: visible ? environmentContainer.height : 0
+    implicitWidth: visible ? environmentContainer.width : 0
+    height: visible ? environmentContainer.height : 0
+    width: visible ? environmentContainer.width : 0
 
     Rectangle {
         id: environmentContainer
 
         anchors.horizontalCenter: parent.horizontalCenter
         height: Math.round(root.font.pointSize * 2.4)
-        width: contentRow.implicitWidth + 24
+        width: contentRow.implicitWidth + Math.round(24 * UiTokens.scale)
         radius: UiTokens.radius
         color: environmentTrigger.containsMouse ? UiTokens.surface0 : "transparent"
         border.width: 1
@@ -122,11 +137,11 @@ Rectangle {
         popup: Popup {
             id: environmentMenu
 
-            implicitHeight: Math.min(menuContent.implicitHeight + 16, 220)
-            width: Math.max(environmentContainer.width + 40, 200)
-            y: environmentContainer.height + 4
+            implicitHeight: Math.min(menuContent.implicitHeight + Math.round(16 * UiTokens.scale), Math.round(220 * UiTokens.scale))
+            width: Math.max(environmentContainer.width + Math.round(40 * UiTokens.scale), Math.round(200 * UiTokens.scale))
+            y: environmentContainer.height + UiTokens.spacing_xs
             x: Math.round((environmentContainer.width - width) / 2)
-            padding: 8
+            padding: UiTokens.spacing_sm
 
             background: Rectangle {
                 radius: UiTokens.radius
@@ -137,8 +152,8 @@ Rectangle {
 
                 layer.effect: DropShadow {
                     horizontalOffset: 0
-                    verticalOffset: 4
-                    radius: 12
+                    verticalOffset: Math.round(4 * UiTokens.scale)
+                    radius: Math.round(12 * UiTokens.scale)
                     samples: 16
                     color: Qt.rgba(0, 0, 0, 0.3)
                 }
@@ -154,10 +169,10 @@ Rectangle {
                 currentIndex: environmentPicker.highlightedIndex
 
                 delegate: Rectangle {
-                    width: ListView.view.width
-                    height: delegateText.implicitHeight + 12
+                    width: menuContent.width
+                    height: delegateText.implicitHeight + Math.round(12 * UiTokens.scale)
                     anchors.horizontalCenter: parent.horizontalCenter
-                    color: ListView.view.currentIndex === index ? (config.DropdownSelectedBackgroundColor || UiTokens.lavender) : "transparent"
+                    color: menuContent.currentIndex === index ? (config.DropdownSelectedBackgroundColor || UiTokens.lavender) : "transparent"
                     radius: UiTokens.radius_sm
 
                     Text {
@@ -165,7 +180,7 @@ Rectangle {
 
                         anchors.centerIn: parent
                         text: model.name || ""
-                        color: ListView.view.currentIndex === index ? (config.DropdownSelectedTextColor || UiTokens.crust) : (config.DropdownTextColor || UiTokens.text)
+                        color: menuContent.currentIndex === index ? (config.DropdownSelectedTextColor || UiTokens.crust) : (config.DropdownTextColor || UiTokens.text)
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: Text.AlignHCenter
                         renderType: Text.QtRendering
